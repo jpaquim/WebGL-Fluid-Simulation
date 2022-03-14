@@ -1,8 +1,3 @@
-@font-face {
-	font-family: 'iconfont';
-	src: url('/iconfont.ttf') format('truetype');
-}
-
 * {
 	user-select: none;
 }
@@ -26,47 +21,4 @@ body {
 
 .dg .property-name {
 	overflow: visible;
-}
-
-.bigFont {
-	font-size: 150%;
-	color: #8c8c8c;
-}
-
-.cr.function.appBigFont {
-	font-size: 150%;
-	line-height: 27px;
-	color: #a5f8d3;
-	background-color: #023c40;
-}
-
-.cr.function.appBigFont .property-name {
-	float: none;
-}
-
-.cr.function.appBigFont .icon {
-	position: sticky;
-	bottom: 27px;
-}
-
-.icon {
-	font-family: 'iconfont';
-	font-size: 130%;
-	float: right;
-}
-
-.twitter:before {
-	content: 'a';
-}
-
-.github:before {
-	content: 'b';
-}
-
-.app:before {
-	content: 'c';
-}
-
-.discord:before {
-	content: 'd';
 }

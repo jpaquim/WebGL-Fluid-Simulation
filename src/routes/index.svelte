@@ -7,7 +7,9 @@
 
 	let canvas;
 
-	onMount(() => {
+	onMount(async () => {
+		const dat = await import('dat.gui');
+
 		resizeCanvas();
 
 		let config = {

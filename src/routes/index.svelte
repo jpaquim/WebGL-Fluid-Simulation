@@ -71,17 +71,19 @@
 		return /Mobi|Android/i.test(navigator.userAgent);
 	}
 
-	function pointerPrototype() {
-		this.id = -1;
-		this.texcoordX = 0;
-		this.texcoordY = 0;
-		this.prevTexcoordX = 0;
-		this.prevTexcoordY = 0;
-		this.deltaX = 0;
-		this.deltaY = 0;
-		this.down = false;
-		this.moved = false;
-		this.color = [30, 0, 300];
+	function createPointer() {
+		return {
+			id: -1,
+			texcoordX: 0,
+			texcoordY: 0,
+			prevTexcoordX: 0,
+			prevTexcoordY: 0,
+			deltaX: 0,
+			deltaY: 0,
+			down: false,
+			moved: false,
+			color: [30, 0, 300]
+		};
 	}
 
 	function updatePointerDownData(pointer, id, posX, posY) {
@@ -275,54 +277,53 @@
 		document.body.removeChild(link);
 	}
 
-	class Material {
-		constructor(vertexShader, fragmentShaderSource) {
-			this.vertexShader = vertexShader;
-			this.fragmentShaderSource = fragmentShaderSource;
-			this.programs = [];
-			this.activeProgram = null;
-			this.uniforms = [];
-		}
+	function createMaterial(vertexShader, fragmentShaderSource) {
+		const programs = [];
+		let activeProgram = null;
+		let uniforms = [];
+		return {
+			programs,
+			get activeProgram() {
+				return activeProgram;
+			},
+			get uniforms() {
+				return uniforms;
+			},
+			setKeywords(keywords) {
+				let hash = 0;
+				for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
 
-		setKeywords(keywords) {
-			let hash = 0;
-			for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
+				let program = programs[hash];
+				if (program == null) {
+					const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource, keywords);
+					program = buildProgram(vertexShader, fragmentShader);
+					programs[hash] = program;
+				}
 
-			let program = this.programs[hash];
-			if (program == null) {
-				const fragmentShader = compileShader(
-					gl.FRAGMENT_SHADER,
-					this.fragmentShaderSource,
-					keywords
-				);
-				program = createProgram(this.vertexShader, fragmentShader);
-				this.programs[hash] = program;
+				if (program == activeProgram) return;
+
+				uniforms = getUniforms(program);
+				activeProgram = program;
+			},
+			bind() {
+				gl.useProgram(activeProgram);
 			}
-
-			if (program == this.activeProgram) return;
-
-			this.uniforms = getUniforms(program);
-			this.activeProgram = program;
-		}
-
-		bind() {
-			gl.useProgram(this.activeProgram);
-		}
-	}
-
-	class Program {
-		constructor(vertexShader, fragmentShader) {
-			this.uniforms = {};
-			this.program = createProgram(vertexShader, fragmentShader);
-			this.uniforms = getUniforms(this.program);
-		}
-
-		bind() {
-			gl.useProgram(this.program);
-		}
+		};
 	}
 
 	function createProgram(vertexShader, fragmentShader) {
+		const program = buildProgram(vertexShader, fragmentShader);
+		const uniforms = getUniforms(program);
+		return {
+			program,
+			uniforms,
+			bind() {
+				gl.useProgram(program);
+			}
+		};
+	}
+
+	function buildProgram(vertexShader, fragmentShader) {
 		const program = gl.createProgram();
 		gl.attachShader(program, vertexShader);
 		gl.attachShader(program, fragmentShader);
@@ -980,7 +981,7 @@
 
 		resizeCanvas();
 
-		pointers.push(new pointerPrototype());
+		pointers.push(createPointer());
 
 		// getWebGLContext
 		const params = {
@@ -1098,25 +1099,25 @@
 
 		ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
 
-		blurProgram = new Program(blurVertexShader, blurShader);
-		copyProgram = new Program(baseVertexShader, copyShader);
-		clearProgram = new Program(baseVertexShader, clearShader);
-		colorProgram = new Program(baseVertexShader, colorShader);
-		checkerboardProgram = new Program(baseVertexShader, checkerboardShader);
-		bloomPrefilterProgram = new Program(baseVertexShader, bloomPrefilterShader);
-		bloomBlurProgram = new Program(baseVertexShader, bloomBlurShader);
-		bloomFinalProgram = new Program(baseVertexShader, bloomFinalShader);
-		sunraysMaskProgram = new Program(baseVertexShader, sunraysMaskShader);
-		sunraysProgram = new Program(baseVertexShader, sunraysShader);
-		splatProgram = new Program(baseVertexShader, splatShader);
-		advectionProgram = new Program(baseVertexShader, advectionShader);
-		divergenceProgram = new Program(baseVertexShader, divergenceShader);
-		curlProgram = new Program(baseVertexShader, curlShader);
-		vorticityProgram = new Program(baseVertexShader, vorticityShader);
-		pressureProgram = new Program(baseVertexShader, pressureShader);
-		gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
+		blurProgram = createProgram(blurVertexShader, blurShader);
+		copyProgram = createProgram(baseVertexShader, copyShader);
+		clearProgram = createProgram(baseVertexShader, clearShader);
+		colorProgram = createProgram(baseVertexShader, colorShader);
+		checkerboardProgram = createProgram(baseVertexShader, checkerboardShader);
+		bloomPrefilterProgram = createProgram(baseVertexShader, bloomPrefilterShader);
+		bloomBlurProgram = createProgram(baseVertexShader, bloomBlurShader);
+		bloomFinalProgram = createProgram(baseVertexShader, bloomFinalShader);
+		sunraysMaskProgram = createProgram(baseVertexShader, sunraysMaskShader);
+		sunraysProgram = createProgram(baseVertexShader, sunraysShader);
+		splatProgram = createProgram(baseVertexShader, splatShader);
+		advectionProgram = createProgram(baseVertexShader, advectionShader);
+		divergenceProgram = createProgram(baseVertexShader, divergenceShader);
+		curlProgram = createProgram(baseVertexShader, curlShader);
+		vorticityProgram = createProgram(baseVertexShader, vorticityShader);
+		pressureProgram = createProgram(baseVertexShader, pressureShader);
+		gradienSubtractProgram = createProgram(baseVertexShader, gradientSubtractShader);
 
-		displayMaterial = new Material(baseVertexShader, shaders.displayShader);
+		displayMaterial = createMaterial(baseVertexShader, shaders.displayShader);
 
 		updateKeywords();
 		initFramebuffers();
@@ -1134,7 +1135,7 @@
 		const posX = scaleByPixelRatio(e.offsetX);
 		const posY = scaleByPixelRatio(e.offsetY);
 		let pointer = pointers.find((p) => p.id == -1);
-		if (pointer == null) pointer = new pointerPrototype();
+		if (pointer == null) pointer = createPointer();
 		updatePointerDownData(pointer, -1, posX, posY);
 	}}
 	on:mousemove={(e) => {
@@ -1147,7 +1148,7 @@
 	on:touchstart={(e) => {
 		e.preventDefault();
 		const touches = e.targetTouches;
-		while (touches.length >= pointers.length) pointers.push(new pointerPrototype());
+		while (touches.length >= pointers.length) pointers.push(createPointer());
 		for (let i = 0; i < touches.length; i++) {
 			const posX = scaleByPixelRatio(touches[i].pageX);
 			const posY = scaleByPixelRatio(touches[i].pageY);

@@ -67,24 +67,20 @@
 		};
 	}
 
-	function isMobile() {
-		return /Mobi|Android/i.test(navigator.userAgent);
-	}
+	const isMobile = () => /Mobi|Android/i.test(navigator.userAgent);
 
-	function createPointer() {
-		return {
-			id: -1,
-			texcoordX: 0,
-			texcoordY: 0,
-			prevTexcoordX: 0,
-			prevTexcoordY: 0,
-			deltaX: 0,
-			deltaY: 0,
-			down: false,
-			moved: false,
-			color: [30, 0, 300]
-		};
-	}
+	const createPointer = () => ({
+		id: -1,
+		texcoordX: 0,
+		texcoordY: 0,
+		prevTexcoordX: 0,
+		prevTexcoordY: 0,
+		deltaX: 0,
+		deltaY: 0,
+		down: false,
+		moved: false,
+		color: [30, 0, 300]
+	});
 
 	function updatePointerDownData(pointer, id, posX, posY) {
 		pointer.id = id;
@@ -104,26 +100,15 @@
 		pointer.prevTexcoordY = pointer.texcoordY;
 		pointer.texcoordX = posX / canvas.width;
 		pointer.texcoordY = 1.0 - posY / canvas.height;
-		pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX);
-		pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY);
+		const aspectRatio = canvas.width / canvas.height;
+		pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX, aspectRatio);
+		pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY, aspectRatio);
 		pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
 	}
 
-	function updatePointerUpData(pointer) {
-		pointer.down = false;
-	}
+	const correctDeltaX = (delta, aspectRatio) => (aspectRatio < 1 ? delta * aspectRatio : delta);
 
-	function correctDeltaX(delta) {
-		const aspectRatio = canvas.width / canvas.height;
-		if (aspectRatio < 1) delta *= aspectRatio;
-		return delta;
-	}
-
-	function correctDeltaY(delta) {
-		const aspectRatio = canvas.width / canvas.height;
-		if (aspectRatio > 1) delta /= aspectRatio;
-		return delta;
-	}
+	const correctDeltaY = (delta, aspectRatio) => (aspectRatio > 1 ? delta / aspectRatio : delta);
 
 	function generateColor() {
 		const c = HSVtoRGB(Math.random(), 1.0, 1.0);
@@ -169,14 +154,11 @@
 		};
 	}
 
-	function normalizeColor(input) {
-		const output = {
-			r: input.r / 255,
-			g: input.g / 255,
-			b: input.b / 255
-		};
-		return output;
-	}
+	const normalizeColor = (input) => ({
+		r: input.r / 255,
+		g: input.g / 255,
+		b: input.b / 255
+	});
 
 	function wrap(value, min, max) {
 		const range = max - min;
@@ -184,17 +166,12 @@
 		return ((value - min) % range) + min;
 	}
 
-	function getTextureScale(texture, width, height) {
-		return {
-			x: width / texture.width,
-			y: height / texture.height
-		};
-	}
+	const getTextureScale = (texture, width, height) => ({
+		x: width / texture.width,
+		y: height / texture.height
+	});
 
-	function scaleByPixelRatio(input) {
-		const pixelRatio = window.devicePixelRatio || 1;
-		return Math.floor(input * pixelRatio);
-	}
+	const scaleByPixelRatio = (input) => Math.floor(input * (window.devicePixelRatio || 1));
 
 	function hashCode(s) {
 		if (s.length == 0) return 0;
@@ -251,9 +228,7 @@
 		return result;
 	}
 
-	function clamp01(input) {
-		return Math.min(Math.max(input, 0), 1);
-	}
+	const clamp01 = (input) => Math.min(Math.max(input, 0), 1);
 
 	function textureToCanvas(texture, width, height) {
 		const captureCanvas = document.createElement('canvas');
@@ -933,9 +908,11 @@
 
 	/** @type {HTMLCanvasElement} */
 	let canvas;
+
 	/** @type {WebGL2RenderingContext} */
 	let gl;
 	let ext;
+
 	const pointers = [];
 	const splatStack = [];
 
@@ -974,6 +951,7 @@
 	let lastUpdateTime;
 	let colorUpdateTimer;
 
+	/** @type {(target: any, clear?: boolean) => void} */
 	let blit;
 
 	onMount(async () => {
@@ -1169,15 +1147,13 @@
 />
 
 <svelte:window
-	on:mouseup={() => {
-		updatePointerUpData(pointers[0]);
-	}}
+	on:mouseup={() => (pointers[0].down = false)}
 	on:touchend={(e) => {
 		const touches = e.changedTouches;
 		for (let i = 0; i < touches.length; i++) {
 			const pointer = pointers.find((p) => p.id == touches[i].identifier);
 			if (pointer == null) continue;
-			updatePointerUpData(pointer);
+			pointer.down = false;
 		}
 	}}
 	on:keydown={(e) => {

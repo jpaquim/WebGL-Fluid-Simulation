@@ -3,6 +3,7 @@ lockfileVersion: 5.3
 specifiers:
   '@sveltejs/adapter-static': next
   '@sveltejs/kit': next
+  '@types/dat.gui': ^0.7.7
   dat.gui: ^0.7.9
   eslint: ^8.11.0
   eslint-config-prettier: ^8.5.0
@@ -16,7 +17,8 @@ dependencies:
 
 devDependencies:
   '@sveltejs/adapter-static': 1.0.0-next.29
-  '@sveltejs/kit': 1.0.0-next.296_svelte@3.46.4
+  '@sveltejs/kit': 1.0.0-next.297_svelte@3.46.4
+  '@types/dat.gui': 0.7.7
   eslint: 8.11.0
   eslint-config-prettier: 8.5.0_eslint@8.11.0
   eslint-plugin-svelte3: 3.4.1_eslint@8.11.0+svelte@3.46.4
@@ -72,8 +74,8 @@ packages:
       tiny-glob: 0.2.9
     dev: true
 
-  /@sveltejs/kit/1.0.0-next.296_svelte@3.46.4:
-    resolution: {integrity: sha512-mZM3vYSg1VPpgL2QHa+My+KviOuSgP4e5JRO9/T/5XLe3o2tsrRnSpjuzZeVdcY3B4+OrUb5JV7B1UPkHISrLA==}
+  /@sveltejs/kit/1.0.0-next.297_svelte@3.46.4:
+    resolution: {integrity: sha512-u2fQDMzPxz8gKreYRp7AYdWzlq0kdFeA/XAdKnsvvBirn2tAvo6OTJgIlMaKkflsQlUViDLWBLa/Kuw3bNYnPg==}
     engines: {node: '>=14.13'}
     hasBin: true
     peerDependencies:
@@ -111,6 +113,10 @@ packages:
       vite: 2.8.6
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /@types/dat.gui/0.7.7:
+    resolution: {integrity: sha512-CxLCme0He5Jk3uQwfO/fGZMyNhb/ypANzqX0yU9lviBQMlen5SOvQTBQ/Cd9x5mFlUAK5Tk8RgvTyLj1nYkz+w==}
     dev: true
 
   /acorn-jsx/5.3.2_acorn@8.7.0:

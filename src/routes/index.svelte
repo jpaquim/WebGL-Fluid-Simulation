@@ -303,7 +303,7 @@
 				.add(
 					{
 						fun: () => {
-							splatStack.push(parseInt(Math.random() * 20) + 5);
+							splatStack.push(Math.trunc(Math.random() * 20) + 5);
 						}
 					},
 					'fun'
@@ -848,7 +848,7 @@
 
 		updateKeywords();
 		initFramebuffers();
-		multipleSplats(parseInt(Math.random() * 20) + 5);
+		multipleSplats(Math.trunc(Math.random() * 20) + 5);
 
 		let lastUpdateTime = Date.now();
 		let colorUpdateTimer = 0.0;
@@ -1206,7 +1206,7 @@
 	}}
 	on:keydown={(e) => {
 		if (e.code === 'KeyP') config.PAUSED = !config.PAUSED;
-		if (e.key === ' ') splatStack.push(parseInt(Math.random() * 20) + 5);
+		if (e.key === ' ') splatStack.push(Math.trunc(Math.random() * 20) + 5);
 	}}
 />
 

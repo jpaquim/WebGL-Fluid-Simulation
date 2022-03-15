@@ -1,5 +1,5 @@
 {
-	"name": "webgl-fluid-simulation",
+	"name": "svelte-webgl-fluid-simulation",
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "svelte-kit dev",

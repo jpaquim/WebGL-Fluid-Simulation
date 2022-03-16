@@ -1,0 +1,3 @@
+[submodule "packages/svelte-knobby"]
+	path = packages/svelte-knobby
+	url = https://github.com/jpaquim/svelte-knobby

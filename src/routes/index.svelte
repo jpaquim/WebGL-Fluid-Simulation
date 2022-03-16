@@ -4,35 +4,65 @@
 
 <script>
 	import { onMount } from 'svelte';
+	import * as knobby from 'svelte-knobby';
 	import * as shaders from '$lib/shaders';
 
-	const config = {
-		SIM_RESOLUTION: 128,
-		DYE_RESOLUTION: 1024,
-		CAPTURE_RESOLUTION: 512,
-		DENSITY_DISSIPATION: 1,
-		VELOCITY_DISSIPATION: 0.2,
-		PRESSURE: 0.8,
-		PRESSURE_ITERATIONS: 20,
-		CURL: 30,
-		SPLAT_RADIUS: 0.25,
-		SPLAT_FORCE: 6000,
+	const controls = knobby.panel({
+		$id: 'main', // enable localStorage features
+
+		// labelled control panels are collapsible
+		// $label: 'Main options',
+
+		DYE_RESOLUTION: { min: 128, max: 1024, step: 2, value: 1024 },
+		SIM_RESOLUTION: { min: 32, max: 256, step: 2, value: 128 },
+		DENSITY_DISSIPATION: { min: 0, max: 4, step: 0.01, value: 1 },
+		VELOCITY_DISSIPATION: { min: 0, max: 4, step: 0.01, value: 0.2 },
+		PRESSURE: { min: 0, max: 1, step: 0.01, value: 0.8 },
+		PRESSURE_ITERATIONS: { min: 0, max: 30, step: 1, value: 20 },
+		CURL: { min: 0, max: 50, step: 1, value: 30 },
+		SPLAT_RADIUS: { min: 0.01, max: 1, step: 0.01, value: 0.25 },
+		SPLAT_FORCE: { min: 0, max: 10000, step: 1, value: 6000 },
 		SHADING: true,
 		COLORFUL: true,
-		COLOR_UPDATE_SPEED: 10,
+		COLOR_UPDATE_SPEED: { min: 0, max: 20, step: 1, value: 10 },
 		PAUSED: false,
-		BACK_COLOR: { r: 0, g: 0, b: 0 },
-		TRANSPARENT: false,
+		['Random Splats']: () => {
+			splatStack.push(Math.trunc(Math.random() * 20) + 5);
+		},
+		// bloom folder
 		BLOOM: true,
-		BLOOM_ITERATIONS: 8,
-		BLOOM_RESOLUTION: 256,
-		BLOOM_INTENSITY: 0.8,
-		BLOOM_THRESHOLD: 0.6,
-		BLOOM_SOFT_KNEE: 0.7,
+		BLOOM_ITERATIONS: { min: 0, max: 10, step: 1, value: 8 },
+		BLOOM_RESOLUTION: { min: 0, max: 512, step: 2, value: 256 },
+		BLOOM_INTENSITY: { min: 0, max: 2, step: 0.01, value: 0.8 },
+		BLOOM_THRESHOLD: { min: 0, max: 1, step: 0.01, value: 0.6 },
+		BLOOM_SOFT_KNEE: { min: 0, max: 1, step: 0.01, value: 0.7 },
+		// sunrays folder
 		SUNRAYS: true,
-		SUNRAYS_RESOLUTION: 196,
-		SUNRAYS_WEIGHT: 1.0
-	};
+		SUNRAYS_RESOLUTION: { min: 0, max: 200, step: 1, value: 196 },
+		SUNRAYS_WEIGHT: { min: 0, max: 1, step: 0.01, value: 1 },
+		// capture folder
+		BACK_COLOR: {
+			r: { min: 0, max: 255, step: 1, value: 0 },
+			g: { min: 0, max: 255, step: 1, value: 0 },
+			b: { min: 0, max: 255, step: 1, value: 0 }
+		},
+		TRANSPARENT: false,
+		CAPTURE_RESOLUTION: { min: 128, max: 1024, step: 2, value: 512 },
+		['Take Screenshot']: captureScreenshot
+	});
+
+	$: SIM_RESOLUTION = $controls.SIM_RESOLUTION;
+	$: DYE_RESOLUTION = $controls.DYE_RESOLUTION;
+	$: SHADING = $controls.SHADING;
+	$: BLOOM = $controls.BLOOM;
+	$: SUNRAYS = $controls.SUNRAYS;
+
+	// should work similarly to dat.gui's onFinishChange hook
+	$: SIM_RESOLUTION, DYE_RESOLUTION, gl && initFramebuffers();
+	$: SHADING, BLOOM, SUNRAYS, displayMaterial && updateKeywords();
+
+	let showControls = false;
+	$: knobby.toggle(showControls);
 
 	function getSupportedFormat(gl, internalFormat, format, type) {
 		const texture = gl.createTexture();
@@ -184,7 +214,7 @@
 	}
 
 	function captureScreenshot() {
-		const res = getResolution(config.CAPTURE_RESOLUTION);
+		const res = getResolution($controls.CAPTURE_RESOLUTION);
 		const target = createFBO(
 			res.width,
 			res.height,
@@ -373,8 +403,8 @@
 	}
 
 	function initFramebuffers() {
-		const simRes = getResolution(config.SIM_RESOLUTION);
-		const dyeRes = getResolution(config.DYE_RESOLUTION);
+		const simRes = getResolution($controls.SIM_RESOLUTION);
+		const dyeRes = getResolution($controls.DYE_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const rgba = ext.formatRGBA;
@@ -447,7 +477,7 @@
 	}
 
 	function initBloomFramebuffers() {
-		const res = getResolution(config.BLOOM_RESOLUTION);
+		const res = getResolution($controls.BLOOM_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const rgba = ext.formatRGBA;
@@ -456,7 +486,7 @@
 		bloom = createFBO(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
 
 		bloomFramebuffers.length = 0;
-		for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
+		for (let i = 0; i < $controls.BLOOM_ITERATIONS; i++) {
 			const width = res.width >> (i + 1);
 			const height = res.height >> (i + 1);
 
@@ -468,7 +498,7 @@
 	}
 
 	function initSunraysFramebuffers() {
-		const res = getResolution(config.SUNRAYS_RESOLUTION);
+		const res = getResolution($controls.SUNRAYS_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const r = ext.formatR;
@@ -604,9 +634,9 @@
 
 	function updateKeywords() {
 		const displayKeywords = [];
-		if (config.SHADING) displayKeywords.push('SHADING');
-		if (config.BLOOM) displayKeywords.push('BLOOM');
-		if (config.SUNRAYS) displayKeywords.push('SUNRAYS');
+		if ($controls.SHADING) displayKeywords.push('SHADING');
+		if ($controls.BLOOM) displayKeywords.push('BLOOM');
+		if ($controls.SUNRAYS) displayKeywords.push('SUNRAYS');
 		displayMaterial.setKeywords(displayKeywords);
 	}
 
@@ -615,7 +645,7 @@
 		if (resizeCanvas()) initFramebuffers();
 		updateColors(dt);
 		applyInputs();
-		if (!config.PAUSED) step(dt);
+		if (!$controls.PAUSED) step(dt);
 		render(null);
 		requestAnimationFrame(update);
 	}
@@ -640,9 +670,9 @@
 	}
 
 	function updateColors(dt) {
-		if (!config.COLORFUL) return;
+		if (!$controls.COLORFUL) return;
 
-		colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
+		colorUpdateTimer += dt * $controls.COLOR_UPDATE_SPEED;
 		if (colorUpdateTimer >= 1) {
 			colorUpdateTimer = wrap(colorUpdateTimer, 0, 1);
 			pointers.forEach((p) => {
@@ -674,7 +704,7 @@
 		gl.uniform2f(vorticityProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
 		gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read.attach(0));
 		gl.uniform1i(vorticityProgram.uniforms.uCurl, curl.attach(1));
-		gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
+		gl.uniform1f(vorticityProgram.uniforms.curl, $controls.CURL);
 		gl.uniform1f(vorticityProgram.uniforms.dt, dt);
 		blit(velocity.write);
 		velocity.swap();
@@ -686,14 +716,14 @@
 
 		clearProgram.bind();
 		gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
-		gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
+		gl.uniform1f(clearProgram.uniforms.value, $controls.PRESSURE);
 		blit(pressure.write);
 		pressure.swap();
 
 		pressureProgram.bind();
 		gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
 		gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
-		for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+		for (let i = 0; i < $controls.PRESSURE_ITERATIONS; i++) {
 			gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
 			blit(pressure.write);
 			pressure.swap();
@@ -722,7 +752,7 @@
 		gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
 		gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
 		gl.uniform1f(advectionProgram.uniforms.dt, dt);
-		gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
+		gl.uniform1f(advectionProgram.uniforms.dissipation, $controls.VELOCITY_DISSIPATION);
 		blit(velocity.write);
 		velocity.swap();
 
@@ -730,27 +760,27 @@
 			gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY);
 		gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
 		gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
-		gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
+		gl.uniform1f(advectionProgram.uniforms.dissipation, $controls.DENSITY_DISSIPATION);
 		blit(dye.write);
 		dye.swap();
 	}
 
 	function render(target) {
-		if (config.BLOOM) applyBloom(dye.read, bloom);
-		if (config.SUNRAYS) {
+		if ($controls.BLOOM) applyBloom(dye.read, bloom);
+		if ($controls.SUNRAYS) {
 			applySunrays(dye.read, dye.write, sunrays);
 			blur(sunrays, sunraysTemp, 1);
 		}
 
-		if (target == null || !config.TRANSPARENT) {
+		if (target == null || !$controls.TRANSPARENT) {
 			gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 			gl.enable(gl.BLEND);
 		} else {
 			gl.disable(gl.BLEND);
 		}
 
-		if (!config.TRANSPARENT) drawColor(target, normalizeColor(config.BACK_COLOR));
-		if (target == null && config.TRANSPARENT) drawCheckerboard(target);
+		if (!$controls.TRANSPARENT) drawColor(target, normalizeColor($controls.BACK_COLOR));
+		if (target == null && $controls.TRANSPARENT) drawCheckerboard(target);
 		drawDisplay(target);
 	}
 
@@ -771,15 +801,16 @@
 		const height = target == null ? gl.drawingBufferHeight : target.height;
 
 		displayMaterial.bind();
-		if (config.SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
+		if ($controls.SHADING)
+			gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
 		gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
-		if (config.BLOOM) {
+		if ($controls.BLOOM) {
 			gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
 			gl.uniform1i(displayMaterial.uniforms.uDithering, ditheringTexture.attach(2));
 			const scale = getTextureScale(ditheringTexture, width, height);
 			gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
 		}
-		if (config.SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
+		if ($controls.SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
 		blit(target);
 	}
 
@@ -790,12 +821,12 @@
 
 		gl.disable(gl.BLEND);
 		bloomPrefilterProgram.bind();
-		const knee = config.BLOOM_THRESHOLD * config.BLOOM_SOFT_KNEE + 0.0001;
-		const curve0 = config.BLOOM_THRESHOLD - knee;
+		const knee = $controls.BLOOM_THRESHOLD * $controls.BLOOM_SOFT_KNEE + 0.0001;
+		const curve0 = $controls.BLOOM_THRESHOLD - knee;
 		const curve1 = knee * 2;
 		const curve2 = 0.25 / knee;
 		gl.uniform3f(bloomPrefilterProgram.uniforms.curve, curve0, curve1, curve2);
-		gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, config.BLOOM_THRESHOLD);
+		gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, $controls.BLOOM_THRESHOLD);
 		gl.uniform1i(bloomPrefilterProgram.uniforms.uTexture, source.attach(0));
 		blit(last);
 
@@ -824,7 +855,7 @@
 		bloomFinalProgram.bind();
 		gl.uniform2f(bloomFinalProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
 		gl.uniform1i(bloomFinalProgram.uniforms.uTexture, last.attach(0));
-		gl.uniform1f(bloomFinalProgram.uniforms.intensity, config.BLOOM_INTENSITY);
+		gl.uniform1f(bloomFinalProgram.uniforms.intensity, $controls.BLOOM_INTENSITY);
 		blit(destination);
 	}
 
@@ -835,7 +866,7 @@
 		blit(mask);
 
 		sunraysProgram.bind();
-		gl.uniform1f(sunraysProgram.uniforms.weight, config.SUNRAYS_WEIGHT);
+		gl.uniform1f(sunraysProgram.uniforms.weight, $controls.SUNRAYS_WEIGHT);
 		gl.uniform1i(sunraysProgram.uniforms.uTexture, mask.attach(0));
 		blit(destination);
 	}
@@ -854,8 +885,8 @@
 	}
 
 	function splatPointer(pointer) {
-		const dx = pointer.deltaX * config.SPLAT_FORCE;
-		const dy = pointer.deltaY * config.SPLAT_FORCE;
+		const dx = pointer.deltaX * $controls.SPLAT_FORCE;
+		const dy = pointer.deltaY * $controls.SPLAT_FORCE;
 		splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
 	}
 
@@ -879,7 +910,7 @@
 		gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
 		gl.uniform2f(splatProgram.uniforms.point, x, y);
 		gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-		gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
+		gl.uniform1f(splatProgram.uniforms.radius, correctRadius($controls.SPLAT_RADIUS / 100.0));
 		blit(velocity.write);
 		velocity.swap();
 
@@ -954,9 +985,7 @@
 	/** @type {(target: any, clear?: boolean) => void} */
 	let blit;
 
-	onMount(async () => {
-		const dat = await import('dat.gui');
-
+	onMount(() => {
 		resizeCanvas();
 
 		pointers.push(createPointer());
@@ -990,60 +1019,14 @@
 		};
 
 		if (isMobile()) {
-			config.DYE_RESOLUTION = 512;
+			$controls.DYE_RESOLUTION = 512;
 		}
 		if (!ext.supportLinearFiltering) {
-			config.DYE_RESOLUTION = 512;
-			config.SHADING = false;
-			config.BLOOM = false;
-			config.SUNRAYS = false;
+			$controls.DYE_RESOLUTION = 512;
+			$controls.SHADING = false;
+			$controls.BLOOM = false;
+			$controls.SUNRAYS = false;
 		}
-
-		// startGUI
-		const gui = new dat.GUI({ width: 300 });
-		gui
-			.add(config, 'DYE_RESOLUTION', { high: 1024, medium: 512, low: 256, 'very low': 128 })
-			.name('quality')
-			.onFinishChange(initFramebuffers);
-		gui
-			.add(config, 'SIM_RESOLUTION', { 32: 32, 64: 64, 128: 128, 256: 256 })
-			.name('sim resolution')
-			.onFinishChange(initFramebuffers);
-		gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
-		gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
-		gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
-		gui.add(config, 'CURL', 0, 50).name('vorticity').step(1);
-		gui.add(config, 'SPLAT_RADIUS', 0.01, 1.0).name('splat radius');
-		gui.add(config, 'SHADING').name('shading').onFinishChange(updateKeywords);
-		gui.add(config, 'COLORFUL').name('colorful');
-		gui.add(config, 'PAUSED').name('paused').listen();
-
-		gui
-			.add(
-				{
-					fun: () => {
-						splatStack.push(Math.trunc(Math.random() * 20) + 5);
-					}
-				},
-				'fun'
-			)
-			.name('Random splats');
-
-		const bloomFolder = gui.addFolder('Bloom');
-		bloomFolder.add(config, 'BLOOM').name('enabled').onFinishChange(updateKeywords);
-		bloomFolder.add(config, 'BLOOM_INTENSITY', 0.1, 2.0).name('intensity');
-		bloomFolder.add(config, 'BLOOM_THRESHOLD', 0.0, 1.0).name('threshold');
-
-		const sunraysFolder = gui.addFolder('Sunrays');
-		sunraysFolder.add(config, 'SUNRAYS').name('enabled').onFinishChange(updateKeywords);
-		sunraysFolder.add(config, 'SUNRAYS_WEIGHT', 0.3, 1.0).name('weight');
-
-		const captureFolder = gui.addFolder('Capture');
-		captureFolder.addColor(config, 'BACK_COLOR').name('background color');
-		captureFolder.add(config, 'TRANSPARENT').name('transparent');
-		captureFolder.add({ fun: captureScreenshot }, 'fun').name('take screenshot');
-
-		if (isMobile()) gui.close();
 
 		const baseVertexShader = compileShader(gl.VERTEX_SHADER, shaders.baseVertexShader);
 		const blurVertexShader = compileShader(gl.VERTEX_SHADER, shaders.blurVertexShader);
@@ -1104,6 +1087,7 @@
 		lastUpdateTime = Date.now();
 		colorUpdateTimer = 0.0;
 		update();
+		showControls = true;
 	});
 </script>
 
@@ -1157,7 +1141,7 @@
 		}
 	}}
 	on:keydown={(e) => {
-		if (e.code === 'KeyP') config.PAUSED = !config.PAUSED;
+		if (e.code === 'KeyP') $controls.PAUSED = !$controls.PAUSED;
 		if (e.key === ' ') splatStack.push(Math.trunc(Math.random() * 20) + 5);
 	}}
 />

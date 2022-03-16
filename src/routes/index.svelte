@@ -35,13 +35,13 @@
 		// bloom folder
 		BLOOM: true,
 		BLOOM_ITERATIONS: { min: 0, max: 10, step: 1, value: 8 },
-		BLOOM_RESOLUTION: { min: 0, max: 512, step: 2, value: 256 },
+		BLOOM_RESOLUTION: { min: 8, max: 512, step: 1, value: 256 },
 		BLOOM_INTENSITY: { min: 0, max: 2, step: 0.01, value: 0.8 },
 		BLOOM_THRESHOLD: { min: 0, max: 1, step: 0.01, value: 0.6 },
 		BLOOM_SOFT_KNEE: { min: 0, max: 1, step: 0.01, value: 0.7 },
 		// sunrays folder
 		SUNRAYS: true,
-		SUNRAYS_RESOLUTION: { min: 0, max: 200, step: 1, value: 196 },
+		SUNRAYS_RESOLUTION: { min: 1, max: 200, step: 1, value: 196 },
 		SUNRAYS_WEIGHT: { min: 0, max: 1, step: 0.01, value: 1 },
 		// capture folder
 		BACK_COLOR: {
@@ -64,4 +64,4 @@
 	});
 </script>
 
-<Canvas config={$controls} {actions} />
+<Canvas {...$controls} {actions} />

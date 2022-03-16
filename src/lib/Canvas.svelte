@@ -2,21 +2,43 @@
 	import { onMount } from 'svelte';
 	import * as shaders from './shaders';
 
-	export let config;
+	export let SIM_RESOLUTION = 128;
+	export let DYE_RESOLUTION = 1024;
+	export let CAPTURE_RESOLUTION = 512;
+	export let DENSITY_DISSIPATION = 1;
+	export let VELOCITY_DISSIPATION = 0.2;
+	export let PRESSURE = 0.8;
+	export let PRESSURE_ITERATIONS = 20;
+	export let CURL = 30;
+	export let SPLAT_RADIUS = 0.25;
+	export let SPLAT_FORCE = 6000;
+	export let SHADING = true;
+	export let COLORFUL = true;
+	export let COLOR_UPDATE_SPEED = 10;
+	export let PAUSED = false;
+	export let BACK_COLOR = { r: 0, g: 0, b: 0 };
+	export let TRANSPARENT = false;
+	export let BLOOM = true;
+	export let BLOOM_ITERATIONS = 8;
+	export let BLOOM_RESOLUTION = 256;
+	export let BLOOM_INTENSITY = 0.8;
+	export let BLOOM_THRESHOLD = 0.6;
+	export let BLOOM_SOFT_KNEE = 0.7;
+	export let SUNRAYS = true;
+	export let SUNRAYS_RESOLUTION = 196;
+	export let SUNRAYS_WEIGHT = 1.0;
 
 	// a bit hackish, these actions are used by the knobby controls component
 	export let actions;
 	Object.assign(actions, { randomSplats, captureScreenshot });
 
-	// indirection to avoid reactivity on every change to config
-	$: SIM_RESOLUTION = config.SIM_RESOLUTION;
-	$: DYE_RESOLUTION = config.DYE_RESOLUTION;
-	$: SHADING = config.SHADING;
-	$: BLOOM = config.BLOOM;
-	$: SUNRAYS = config.SUNRAYS;
-
 	// should work similarly to dat.gui's onFinishChange hook
-	$: SIM_RESOLUTION, DYE_RESOLUTION, gl && initFramebuffers();
+	$: SIM_RESOLUTION,
+		DYE_RESOLUTION,
+		BLOOM_ITERATIONS,
+		BLOOM_RESOLUTION,
+		SUNRAYS_RESOLUTION,
+		gl && initFramebuffers();
 	$: SHADING, BLOOM, SUNRAYS, displayMaterial && updateKeywords();
 
 	function getSupportedFormat(gl, internalFormat, format, type) {
@@ -169,7 +191,7 @@
 	}
 
 	function captureScreenshot() {
-		const res = getResolution(config.CAPTURE_RESOLUTION);
+		const res = getResolution(CAPTURE_RESOLUTION);
 		const target = createFBO(
 			res.width,
 			res.height,
@@ -358,8 +380,8 @@
 	}
 
 	function initFramebuffers() {
-		const simRes = getResolution(config.SIM_RESOLUTION);
-		const dyeRes = getResolution(config.DYE_RESOLUTION);
+		const simRes = getResolution(SIM_RESOLUTION);
+		const dyeRes = getResolution(DYE_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const rgba = ext.formatRGBA;
@@ -432,7 +454,7 @@
 	}
 
 	function initBloomFramebuffers() {
-		const res = getResolution(config.BLOOM_RESOLUTION);
+		const res = getResolution(BLOOM_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const rgba = ext.formatRGBA;
@@ -441,7 +463,7 @@
 		bloom = createFBO(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
 
 		bloomFramebuffers.length = 0;
-		for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
+		for (let i = 0; i < BLOOM_ITERATIONS; i++) {
 			const width = res.width >> (i + 1);
 			const height = res.height >> (i + 1);
 
@@ -453,7 +475,7 @@
 	}
 
 	function initSunraysFramebuffers() {
-		const res = getResolution(config.SUNRAYS_RESOLUTION);
+		const res = getResolution(SUNRAYS_RESOLUTION);
 
 		const texType = ext.halfFloatTexType;
 		const r = ext.formatR;
@@ -589,9 +611,9 @@
 
 	function updateKeywords() {
 		const displayKeywords = [];
-		if (config.SHADING) displayKeywords.push('SHADING');
-		if (config.BLOOM) displayKeywords.push('BLOOM');
-		if (config.SUNRAYS) displayKeywords.push('SUNRAYS');
+		if (SHADING) displayKeywords.push('SHADING');
+		if (BLOOM) displayKeywords.push('BLOOM');
+		if (SUNRAYS) displayKeywords.push('SUNRAYS');
 		displayMaterial.setKeywords(displayKeywords);
 	}
 
@@ -600,7 +622,7 @@
 		if (resizeCanvas()) initFramebuffers();
 		updateColors(dt);
 		applyInputs();
-		if (!config.PAUSED) step(dt);
+		if (!PAUSED) step(dt);
 		render(null);
 		requestAnimationFrame(update);
 	}
@@ -625,9 +647,9 @@
 	}
 
 	function updateColors(dt) {
-		if (!config.COLORFUL) return;
+		if (!COLORFUL) return;
 
-		colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
+		colorUpdateTimer += dt * COLOR_UPDATE_SPEED;
 		if (colorUpdateTimer >= 1) {
 			colorUpdateTimer = wrap(colorUpdateTimer, 0, 1);
 			pointers.forEach((p) => {
@@ -659,7 +681,7 @@
 		gl.uniform2f(vorticityProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
 		gl.uniform1i(vorticityProgram.uniforms.uVelocity, velocity.read.attach(0));
 		gl.uniform1i(vorticityProgram.uniforms.uCurl, curl.attach(1));
-		gl.uniform1f(vorticityProgram.uniforms.curl, config.CURL);
+		gl.uniform1f(vorticityProgram.uniforms.curl, CURL);
 		gl.uniform1f(vorticityProgram.uniforms.dt, dt);
 		blit(velocity.write);
 		velocity.swap();
@@ -671,14 +693,14 @@
 
 		clearProgram.bind();
 		gl.uniform1i(clearProgram.uniforms.uTexture, pressure.read.attach(0));
-		gl.uniform1f(clearProgram.uniforms.value, config.PRESSURE);
+		gl.uniform1f(clearProgram.uniforms.value, PRESSURE);
 		blit(pressure.write);
 		pressure.swap();
 
 		pressureProgram.bind();
 		gl.uniform2f(pressureProgram.uniforms.texelSize, velocity.texelSizeX, velocity.texelSizeY);
 		gl.uniform1i(pressureProgram.uniforms.uDivergence, divergence.attach(0));
-		for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+		for (let i = 0; i < PRESSURE_ITERATIONS; i++) {
 			gl.uniform1i(pressureProgram.uniforms.uPressure, pressure.read.attach(1));
 			blit(pressure.write);
 			pressure.swap();
@@ -707,7 +729,7 @@
 		gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
 		gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
 		gl.uniform1f(advectionProgram.uniforms.dt, dt);
-		gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
+		gl.uniform1f(advectionProgram.uniforms.dissipation, VELOCITY_DISSIPATION);
 		blit(velocity.write);
 		velocity.swap();
 
@@ -715,27 +737,27 @@
 			gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY);
 		gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
 		gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
-		gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
+		gl.uniform1f(advectionProgram.uniforms.dissipation, DENSITY_DISSIPATION);
 		blit(dye.write);
 		dye.swap();
 	}
 
 	function render(target) {
-		if (config.BLOOM) applyBloom(dye.read, bloom);
-		if (config.SUNRAYS) {
+		if (BLOOM) applyBloom(dye.read, bloom);
+		if (SUNRAYS) {
 			applySunrays(dye.read, dye.write, sunrays);
 			blur(sunrays, sunraysTemp, 1);
 		}
 
-		if (target == null || !config.TRANSPARENT) {
+		if (target == null || !TRANSPARENT) {
 			gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 			gl.enable(gl.BLEND);
 		} else {
 			gl.disable(gl.BLEND);
 		}
 
-		if (!config.TRANSPARENT) drawColor(target, normalizeColor(config.BACK_COLOR));
-		if (target == null && config.TRANSPARENT) drawCheckerboard(target);
+		if (!TRANSPARENT) drawColor(target, normalizeColor(BACK_COLOR));
+		if (target == null && TRANSPARENT) drawCheckerboard(target);
 		drawDisplay(target);
 	}
 
@@ -756,15 +778,15 @@
 		const height = target == null ? gl.drawingBufferHeight : target.height;
 
 		displayMaterial.bind();
-		if (config.SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
+		if (SHADING) gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
 		gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
-		if (config.BLOOM) {
+		if (BLOOM) {
 			gl.uniform1i(displayMaterial.uniforms.uBloom, bloom.attach(1));
 			gl.uniform1i(displayMaterial.uniforms.uDithering, ditheringTexture.attach(2));
 			const scale = getTextureScale(ditheringTexture, width, height);
 			gl.uniform2f(displayMaterial.uniforms.ditherScale, scale.x, scale.y);
 		}
-		if (config.SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
+		if (SUNRAYS) gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
 		blit(target);
 	}
 
@@ -775,12 +797,12 @@
 
 		gl.disable(gl.BLEND);
 		bloomPrefilterProgram.bind();
-		const knee = config.BLOOM_THRESHOLD * config.BLOOM_SOFT_KNEE + 0.0001;
-		const curve0 = config.BLOOM_THRESHOLD - knee;
+		const knee = BLOOM_THRESHOLD * BLOOM_SOFT_KNEE + 0.0001;
+		const curve0 = BLOOM_THRESHOLD - knee;
 		const curve1 = knee * 2;
 		const curve2 = 0.25 / knee;
 		gl.uniform3f(bloomPrefilterProgram.uniforms.curve, curve0, curve1, curve2);
-		gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, config.BLOOM_THRESHOLD);
+		gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, BLOOM_THRESHOLD);
 		gl.uniform1i(bloomPrefilterProgram.uniforms.uTexture, source.attach(0));
 		blit(last);
 
@@ -809,7 +831,7 @@
 		bloomFinalProgram.bind();
 		gl.uniform2f(bloomFinalProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
 		gl.uniform1i(bloomFinalProgram.uniforms.uTexture, last.attach(0));
-		gl.uniform1f(bloomFinalProgram.uniforms.intensity, config.BLOOM_INTENSITY);
+		gl.uniform1f(bloomFinalProgram.uniforms.intensity, BLOOM_INTENSITY);
 		blit(destination);
 	}
 
@@ -820,7 +842,7 @@
 		blit(mask);
 
 		sunraysProgram.bind();
-		gl.uniform1f(sunraysProgram.uniforms.weight, config.SUNRAYS_WEIGHT);
+		gl.uniform1f(sunraysProgram.uniforms.weight, SUNRAYS_WEIGHT);
 		gl.uniform1i(sunraysProgram.uniforms.uTexture, mask.attach(0));
 		blit(destination);
 	}
@@ -839,8 +861,8 @@
 	}
 
 	function splatPointer(pointer) {
-		const dx = pointer.deltaX * config.SPLAT_FORCE;
-		const dy = pointer.deltaY * config.SPLAT_FORCE;
+		const dx = pointer.deltaX * SPLAT_FORCE;
+		const dy = pointer.deltaY * SPLAT_FORCE;
 		splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
 	}
 
@@ -868,7 +890,7 @@
 		gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
 		gl.uniform2f(splatProgram.uniforms.point, x, y);
 		gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
-		gl.uniform1f(splatProgram.uniforms.radius, correctRadius(config.SPLAT_RADIUS / 100.0));
+		gl.uniform1f(splatProgram.uniforms.radius, correctRadius(SPLAT_RADIUS / 100.0));
 		blit(velocity.write);
 		velocity.swap();
 
@@ -977,13 +999,13 @@
 		};
 
 		if (isMobile()) {
-			config.DYE_RESOLUTION = 512;
+			DYE_RESOLUTION = 512;
 		}
 		if (!ext.supportLinearFiltering) {
-			config.DYE_RESOLUTION = 512;
-			config.SHADING = false;
-			config.BLOOM = false;
-			config.SUNRAYS = false;
+			DYE_RESOLUTION = 512;
+			SHADING = false;
+			BLOOM = false;
+			SUNRAYS = false;
 		}
 
 		const baseVertexShader = compileShader(gl.VERTEX_SHADER, shaders.baseVertexShader);
@@ -1098,7 +1120,7 @@
 		}
 	}}
 	on:keydown={(e) => {
-		if (e.code === 'KeyP') config.PAUSED = !config.PAUSED;
+		if (e.code === 'KeyP') PAUSED = !PAUSED;
 		if (e.key === ' ') splatStack.push(Math.trunc(Math.random() * 20) + 5);
 	}}
 />

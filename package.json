@@ -11,7 +11,8 @@
 		"format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. ."
 	},
 	"dependencies": {
-		"dat.gui": "^0.7.9"
+		"dat.gui": "^0.7.9",
+		"svelte-knobby": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "next",

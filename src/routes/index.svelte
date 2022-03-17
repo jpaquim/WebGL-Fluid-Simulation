@@ -44,17 +44,18 @@
 		SUNRAYS_RESOLUTION: { min: 1, max: 200, step: 1, value: 196 },
 		SUNRAYS_WEIGHT: { min: 0, max: 1, step: 0.01, value: 1 },
 		// capture folder
-		BACK_COLOR: {
-			r: { min: 0, max: 255, step: 1, value: 0 },
-			g: { min: 0, max: 255, step: 1, value: 0 },
-			b: { min: 0, max: 255, step: 1, value: 0 }
-		},
+		BACK_COLOR: '#000000',
 		TRANSPARENT: false,
 		CAPTURE_RESOLUTION: { min: 128, max: 1024, step: 2, value: 512 },
 		['Take Screenshot']: () => {
 			actions.captureScreenshot();
 		}
 	});
+
+	function toRGB(s) {
+		const [, r, g, b] = s.match(/#(..)(..)(..)/);
+		return { r: parseInt(r, 16), g: parseInt(g, 16), b: parseInt(b, 16) };
+	}
 
 	let showControls = false;
 	$: knobby.toggle(showControls);
@@ -64,4 +65,4 @@
 	});
 </script>
 
-<Canvas {...$controls} {actions} />
+<Canvas {...$controls} BACK_COLOR={toRGB($controls.BACK_COLOR)} {actions} />
